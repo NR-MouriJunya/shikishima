@@ -11,9 +11,20 @@ import {
   Trash2,
   ArrowLeft,
   ArrowRight,
+  ArrowUpDown,
+  CheckCircle,
+  AlertCircle,
+  Layers,
+  RefreshCw,
 } from 'lucide-react';
 import { createWorker } from 'tesseract.js';
 import type { Script, ScriptLine, Role } from '../types/script';
+import {
+  extractPageNumber,
+  sortPagesAuto,
+  combinePageTexts,
+  type PageOcrItem,
+} from '../utils/pageDetector';
 
 interface ImageItem {
   id: string;
@@ -40,6 +51,11 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
   const [statusText, setStatusText] = useState<string>('');
   const [isVertical, setIsVertical] = useState<boolean>(false); // 縦書きか横書きか
 
+  // ノンブル自動検出＆ソート関連ステート
+  const [autoSortEnabled, setAutoSortEnabled] = useState<boolean>(true); // 自動並び替え有効フラグ
+  const [pageResults, setPageResults] = useState<PageOcrItem[]>([]); // ページごとのOCR結果とノンブル
+  const [sortNotice, setSortNotice] = useState<string>(''); // ソート結果メッセージ
+
   // 解析後の編集用ステート
   const [scriptTitle, setScriptTitle] = useState<string>('写真から取り込んだ台本');
   const [parsedLines, setParsedLines] = useState<ScriptLine[]>([]);
@@ -58,6 +74,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
 
   if (!isOpen) return null;
 
@@ -146,20 +163,53 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
         },
       });
 
-      const allRecognizedTexts: string[] = [];
+      const extractedItems: PageOcrItem[] = [];
 
       for (let i = 0; i < imagePool.length; i++) {
         activeIndex = i;
         setCurrentProcessingPage(i + 1);
-        setStatusText(`ページ ${i + 1} / ${imagePool.length} のテキストを抽出中...`);
+        setStatusText(`ページ ${i + 1} / ${imagePool.length} のテキスト・ノンブルを抽出中...`);
         const ret = await worker.recognize(imagePool[i].url);
-        allRecognizedTexts.push(ret.data.text);
+        const { pageNumber, lineIndex } = extractPageNumber(ret.data.text);
+        extractedItems.push({
+          id: imagePool[i].id,
+          originalIndex: i,
+          imageUrl: imagePool[i].url,
+          imageName: imagePool[i].name,
+          rawText: ret.data.text,
+          detectedPageNumber: pageNumber,
+          effectivePageNumber: pageNumber,
+          matchedLineIndex: lineIndex ?? undefined,
+        });
       }
 
       await worker.terminate();
 
+      // ノンブル自動並び替えの適用判定
+      let finalPages = extractedItems;
+      let notice = '';
+
+      if (autoSortEnabled && extractedItems.length > 1) {
+        const sortResult = sortPagesAuto(extractedItems);
+        finalPages = sortResult.sortedPages;
+
+        if (sortResult.detectedCount === extractedItems.length) {
+          notice = `全 ${extractedItems.length} ページのノンブル（ページ番号）を検出し、正しい昇順に自動整列しました。`;
+        } else if (sortResult.detectedCount > 0) {
+          notice = `一部（${sortResult.detectedCount} / ${extractedItems.length} ページ）のノンブルを検出し、自動整列しました。未検出のページは末尾に配置されています。`;
+        } else {
+          notice = 'ノンブル（ページ番号）が検出されなかったため、元の撮影順のまま配置しました。';
+        }
+      } else {
+        notice = '元の撮影順のまま台本を生成しました。';
+      }
+
+      setPageResults(finalPages);
+      setSortNotice(notice);
+
       // 全ページのテキストを順番に連結して台本行に自動分解
-      parseOcrTextToScript(allRecognizedTexts.join('\n'));
+      const combinedText = combinePageTexts(finalPages);
+      parseOcrTextToScript(combinedText);
       setStep('editing');
     } catch (err: any) {
       console.error('OCRエラー:', err);
@@ -168,6 +218,68 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
       setIsProcessing(false);
     }
   };
+
+  // ページの並び順を手動で左（前）へ移動
+  const handleMovePageLeft = (index: number) => {
+    if (index === 0) return;
+    setPageResults((prev) => {
+      const copy = [...prev];
+      const temp = copy[index - 1];
+      copy[index - 1] = copy[index];
+      copy[index] = temp;
+      parseOcrTextToScript(combinePageTexts(copy));
+      return copy;
+    });
+    setSortNotice('ページの並び順を手動で変更しました。');
+  };
+
+  // ページの並び順を手動で右（次）へ移動
+  const handleMovePageRight = (index: number) => {
+    if (index === pageResults.length - 1) return;
+    setPageResults((prev) => {
+      const copy = [...prev];
+      const temp = copy[index + 1];
+      copy[index + 1] = copy[index];
+      copy[index] = temp;
+      parseOcrTextToScript(combinePageTexts(copy));
+      return copy;
+    });
+    setSortNotice('ページの並び順を手動で変更しました。');
+  };
+
+  // 元の撮影順に戻す
+  const handleResetToOriginalOrder = () => {
+    setPageResults((prev) => {
+      const restored = [...prev].sort((a, b) => a.originalIndex - b.originalIndex);
+      parseOcrTextToScript(combinePageTexts(restored));
+      return restored;
+    });
+    setSortNotice('元の撮影順序に戻しました。');
+  };
+
+  // ノンブルによる自動整列を再適用
+  const handleReapplyAutoSort = () => {
+    setPageResults((prev) => {
+      const sortResult = sortPagesAuto(prev);
+      parseOcrTextToScript(combinePageTexts(sortResult.sortedPages));
+      return sortResult.sortedPages;
+    });
+    setSortNotice('ノンブルによる自動整列を再適用しました。');
+  };
+
+  // ページ番号の手動変更（未検出のページに直接番号を割り振るなど）
+  const handleUpdatePageNumber = (pageId: string, newPageNum: number | null) => {
+    setPageResults((prev) => {
+      const updated = prev.map((p) =>
+        p.id === pageId ? { ...p, effectivePageNumber: newPageNum } : p
+      );
+      const sortResult = sortPagesAuto(updated);
+      parseOcrTextToScript(combinePageTexts(sortResult.sortedPages));
+      return sortResult.sortedPages;
+    });
+    setSortNotice('ページ番号の指定に基づいて再整列しました。');
+  };
+
 
   // 認識された生テキストを行データと役に自動分解
   const parseOcrTextToScript = (rawText: string) => {
@@ -288,6 +400,8 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
   // リセット
   const handleReset = () => {
     setImagePool([]);
+    setPageResults([]);
+    setSortNotice('');
     setStep('upload');
     setOverallProgress(0);
     setCurrentProcessingPage(1);
@@ -454,6 +568,34 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                     </div>
                   </div>
 
+                  {/* ノンブル自動並び替えトグル */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs">
+                    <div className="space-y-0.5 pr-2">
+                      <div className="flex items-center space-x-1.5">
+                        <ArrowUpDown className="w-3.5 h-3.5 text-[#004de5]" />
+                        <span className="text-gray-900 font-bold">
+                          ページ番号（ノンブル）で自動並び替え
+                        </span>
+                        <span className="text-[10px] bg-blue-100 text-[#004de5] px-1.5 py-0.2 rounded font-semibold">
+                          推奨
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-500">
+                        写真内のページ番号（P.1, - 2 -, (3) 等）を解析し、撮影順に関わらず正しい順序へ自動整列します
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer ml-2 shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={autoSortEnabled}
+                        onChange={(e) => setAutoSortEnabled(e.target.checked)}
+                        disabled={isProcessing}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#004de5]"></div>
+                    </label>
+                  </div>
+
                   {/* OCR一括開始ボタン */}
                   <button
                     onClick={handleStartOcr}
@@ -576,6 +718,144 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                   <span>写真を撮り直す</span>
                 </button>
               </div>
+
+              {/* 複数ページ取り込み時のページ並び順マネージャー */}
+              {pageResults.length > 1 && (
+                <div className="p-3.5 rounded-lg border border-gray-200 bg-gray-50 space-y-3">
+                  {/* ヘッダー・アクション */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center space-x-1.5">
+                      <Layers className="w-4 h-4 text-[#004de5]" />
+                      <span className="text-xs font-bold text-gray-900">
+                        ページの並び順（全 {pageResults.length} ページ）
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleReapplyAutoSort}
+                        className="flex items-center space-x-1 px-2.5 py-1 rounded bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 text-[11px] font-semibold transition-colors shadow-2xs"
+                        title="ノンブルを基準にもう一度自動で並び替えます"
+                      >
+                        <RefreshCw className="w-3 h-3 text-[#004de5]" />
+                        <span>自動整列を再実行</span>
+                      </button>
+                      <button
+                        onClick={handleResetToOriginalOrder}
+                        className="px-2.5 py-1 rounded bg-white hover:bg-gray-100 text-gray-600 border border-gray-300 text-[11px] font-medium transition-colors shadow-2xs"
+                        title="アップロード・撮影した当初の順番に戻します"
+                      >
+                        元画像順に戻す
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ステータスバナー */}
+                  {sortNotice && (
+                    <div
+                      className={`flex items-start space-x-2 p-2 rounded text-xs border ${
+                        sortNotice.includes('正しい昇順に自動整列')
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                          : sortNotice.includes('未検出')
+                          ? 'bg-amber-50 border-amber-200 text-amber-900'
+                          : 'bg-blue-50 border-blue-200 text-blue-900'
+                      }`}
+                    >
+                      {sortNotice.includes('正しい昇順に自動整列') ? (
+                        <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      )}
+                      <span className="leading-snug">{sortNotice}</span>
+                    </div>
+                  )}
+
+                  {/* ページサムネイル横スクロール */}
+                  <div className="flex space-x-3 overflow-x-auto pb-1.5 pt-0.5">
+                    {pageResults.map((page, idx) => (
+                      <div
+                        key={page.id}
+                        className="w-36 shrink-0 rounded-lg border border-gray-200 bg-white p-2 flex flex-col space-y-2 shadow-2xs"
+                      >
+                        {/* 順番と元番号 */}
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded">
+                            第 {idx + 1} 頁
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            写真 #{page.originalIndex + 1}
+                          </span>
+                        </div>
+
+                        {/* サムネイル */}
+                        <div className="h-24 w-full rounded bg-gray-100 overflow-hidden border border-gray-100">
+                          <img
+                            src={page.imageUrl}
+                            alt={`ページ ${idx + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+
+                        {/* ノンブル表示・編集 */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-gray-500 font-medium">ノンブル:</span>
+                            {page.detectedPageNumber !== null ? (
+                              <span className="font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                                P.{page.detectedPageNumber} (検出)
+                              </span>
+                            ) : (
+                              <span className="font-medium text-amber-700 bg-amber-50 px-1 py-0.2 rounded border border-amber-200">
+                                未検出
+                              </span>
+                            )}
+                          </div>
+
+                          {/* 手動修正フィールド */}
+                          <div className="flex items-center space-x-1 pt-0.5">
+                            <span className="text-[10px] text-gray-400">P.</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={999}
+                              value={page.effectivePageNumber ?? ''}
+                              placeholder="自動"
+                              onChange={(e) => {
+                                const val = e.target.value ? parseInt(e.target.value, 10) : null;
+                                handleUpdatePageNumber(page.id, val);
+                              }}
+                              className="w-full bg-gray-50 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-gray-800 font-semibold focus:outline-none focus:ring-1 focus:ring-[#004de5]"
+                            />
+                          </div>
+                        </div>
+
+                        {/* 移動コントロール */}
+                        <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                          <button
+                            onClick={() => handleMovePageLeft(idx)}
+                            disabled={idx === 0}
+                            className="p-1 rounded text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 transition-colors"
+                            title="このページを前へ移動"
+                          >
+                            <ArrowLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-[10px] text-gray-400">
+                            {idx + 1} / {pageResults.length}
+                          </span>
+                          <button
+                            onClick={() => handleMovePageRight(idx)}
+                            disabled={idx === pageResults.length - 1}
+                            className="p-1 rounded text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-20 transition-colors"
+                            title="このページを次へ移動"
+                          >
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* タイトル入力 */}
               <div>
