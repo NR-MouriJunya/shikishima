@@ -66,6 +66,8 @@ export interface Script {
   title: string;
   /** サブタイトルまたは説明 */
   description?: string;
+  /** 最終更新日時（UNIXタイムスタンプ） */
+  updatedAt?: number;
   /** 登場人物・役の一覧 */
   roles: Role[];
   /** 台本の全行一覧 */

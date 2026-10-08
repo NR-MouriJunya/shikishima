@@ -1,10 +1,11 @@
 import React from 'react';
-import { BookOpen, Users, Edit3, RotateCcw, Camera } from 'lucide-react';
+import { BookOpen, Users, Edit3, RotateCcw, Camera, Menu, ChevronRight } from 'lucide-react';
 import type { Script } from '../types/script';
 
 interface HeaderProps {
   script: Script;
   isVoicevoxConnected: boolean;
+  onOpenSidebar: () => void;
   onOpenRoleModal: () => void;
   onOpenEditorModal: () => void;
   onOpenOcrModal: () => void;
@@ -14,6 +15,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   script,
   isVoicevoxConnected,
+  onOpenSidebar,
   onOpenRoleModal,
   onOpenEditorModal,
   onOpenOcrModal,
@@ -23,8 +25,17 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-3 py-2.5 sm:px-6 sm:py-3 shadow-xs">
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         {/* ロゴとタイトル */}
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded bg-[#004de5] flex items-center justify-center text-white shrink-0">
+        <div className="flex items-center space-x-2.5 sm:space-x-3">
+          {/* 台本一覧サイドバー開閉ボタン（DADSハンバーガーメニュー風） */}
+          <button
+            onClick={onOpenSidebar}
+            className="p-1.5 rounded hover:bg-gray-100 text-gray-700 hover:text-gray-950 border border-gray-300 transition-colors shadow-2xs"
+            title="保存した台本一覧を開く"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <div className="w-8 h-8 rounded bg-[#004de5] flex items-center justify-center text-white shrink-0 hidden xs:flex">
             <BookOpen className="w-4 h-4" />
           </div>
           <div>
@@ -57,11 +68,17 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>{isVoicevoxConnected ? 'VOICEVOX' : '標準TTS'}</span>
               </button>
             </div>
-            <div className="flex items-center space-x-1 mt-0.5">
-              <span className="text-xs font-semibold text-gray-600 truncate max-w-[130px] sm:max-w-xs">
+            {/* クリックで台本一覧が開くタイトルリンク */}
+            <button
+              onClick={onOpenSidebar}
+              className="flex items-center space-x-1 text-left mt-0.5 group"
+              title="クリックして別の台本を選択"
+            >
+              <span className="text-xs font-semibold text-gray-700 group-hover:text-[#004de5] truncate max-w-[130px] sm:max-w-xs transition-colors underline decoration-gray-300 group-hover:decoration-[#004de5]">
                 {script.title}
               </span>
-            </div>
+              <ChevronRight className="w-3 h-3 text-gray-400 group-hover:text-[#004de5] transition-colors" />
+            </button>
           </div>
         </div>
 
