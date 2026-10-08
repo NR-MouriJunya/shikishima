@@ -135,7 +135,7 @@ export function App() {
     : undefined;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-pink-500 selection:text-white">
+    <div className="min-h-screen bg-[#f7f9fa] text-[#1b1c1d] flex flex-col selection:bg-blue-100 selection:text-blue-900">
       {/* 上部ヘッダー */}
       <Header
         script={script}

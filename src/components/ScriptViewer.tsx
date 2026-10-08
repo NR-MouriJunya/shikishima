@@ -64,32 +64,36 @@ export const ScriptViewer: React.FC<ScriptViewerProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 md:px-8 pb-36 max-w-3xl mx-auto w-full space-y-5">
-      {/* 台本紹介カード */}
-      <div className="text-center py-4 mb-4 border-b border-slate-800/80">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight mb-2">
+    <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 md:px-8 pb-36 max-w-4xl mx-auto w-full space-y-4">
+      {/* 台本紹介カード（DADSカードコンポーネント風） */}
+      <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-2xs text-center space-y-3">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
           {script.title}
         </h2>
         {script.description && (
-          <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed">
             {script.description}
           </p>
         )}
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+        <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-xs font-semibold text-gray-500 mr-1">登場人物:</span>
           {script.roles.map((r) => (
             <span
               key={r.id}
-              className="text-xs px-2.5 py-1 rounded-full font-medium flex items-center space-x-1"
-              style={{
-                color: r.color,
-                backgroundColor: r.bgColor || 'rgba(255,255,255,0.05)',
-                border: `1px solid ${r.color}33`,
-              }}
+              className={`text-xs px-2.5 py-1 rounded font-semibold flex items-center space-x-1.5 border ${
+                r.isUserRole
+                  ? 'bg-blue-50 text-[#004de5] border-[#004de5]'
+                  : 'bg-gray-50 text-gray-700 border-gray-300'
+              }`}
             >
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: r.color }}
+              />
               <span>{r.name}</span>
               {r.isUserRole && (
-                <span className="text-[10px] bg-pink-500/20 text-pink-300 px-1 rounded ml-1">
-                  担当
+                <span className="text-[10px] bg-[#004de5] text-white px-1.5 py-0.2 rounded font-bold">
+                  あなたの役
                 </span>
               )}
             </span>
@@ -116,45 +120,47 @@ export const ScriptViewer: React.FC<ScriptViewerProps> = ({
             onMouseDown={() => handleTouchStart(line)}
             onMouseUp={handleTouchEnd}
             onMouseLeave={handleTouchEnd}
-            className={`group relative rounded-2xl p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none ${
+            className={`group relative rounded-lg p-4 sm:p-5 transition-all duration-200 cursor-pointer select-none border ${
               isActive
-                ? 'bg-slate-800/90 shadow-xl shadow-indigo-950/40 ring-2 ring-indigo-500/60 scale-[1.01]'
+                ? 'bg-blue-50/80 border-[#004de5] shadow-xs ring-1 ring-[#004de5]/50'
                 : isPlaying
-                ? 'opacity-40 hover:opacity-85 hover:bg-slate-800/40'
-                : 'opacity-90 hover:opacity-100 hover:bg-slate-800/40'
+                ? 'bg-white border-gray-200 opacity-60 hover:opacity-90 hover:border-gray-300'
+                : 'bg-white border-gray-200 hover:border-gray-300 shadow-2xs'
             }`}
             style={{
-              borderLeft: isActive
-                ? `6px solid ${role?.color || '#6366f1'}`
-                : '6px solid transparent',
+              borderLeftWidth: '5px',
+              borderLeftColor: isActive
+                ? '#004de5'
+                : role?.color || '#94a3b8',
             }}
           >
             {/* 行ヘッダー情報 */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
                 <span
-                  className="text-xs font-bold px-2.5 py-0.5 rounded-full tracking-wide transition-colors"
+                  className="text-xs font-bold px-2 py-0.5 rounded tracking-wide border"
                   style={{
-                    color: role?.color || '#94a3b8',
-                    backgroundColor: role?.bgColor || 'rgba(148, 163, 184, 0.15)',
+                    color: role?.color || '#475569',
+                    backgroundColor: role?.bgColor || '#f1f5f9',
+                    borderColor: `${role?.color || '#94a3b8'}40`,
                   }}
                 >
                   {role?.name || 'ト書き'}
                 </span>
 
-                {/* 自分のセリフ番インジケータ */}
+                {/* 自分のセリフ番インジケータ（DADSハイライトカラー） */}
                 {isCurrentLineUserTurn && (
-                  <span className="inline-flex items-center space-x-1 text-xs px-2.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-bold border border-pink-500/50 animate-pulse">
-                    <Mic className="w-3.5 h-3.5 text-pink-400" />
-                    <span>キミの番だよ！発声してね</span>
+                  <span className="inline-flex items-center space-x-1 text-xs px-2.5 py-0.5 rounded bg-amber-100 text-amber-950 font-bold border border-amber-300">
+                    <Mic className="w-3.5 h-3.5 text-amber-800" />
+                    <span>あなたの番です！発声してください</span>
                   </span>
                 )}
               </div>
 
-              {/* Tipsボタン（長押しでも開けるが、分かりやすくアイコンも常備） */}
+              {/* Tipsボタン */}
               <div className="flex items-center space-x-1.5">
                 {line.tips?.emotion && (
-                  <span className="hidden sm:inline-flex text-[11px] text-pink-300/80 bg-pink-950/40 px-2 py-0.5 rounded-md border border-pink-900/40">
+                  <span className="hidden sm:inline-flex text-[11px] text-gray-700 bg-gray-100 px-2 py-0.5 rounded border border-gray-300 font-medium">
                     {line.tips.emotion}
                   </span>
                 )}
@@ -163,10 +169,10 @@ export const ScriptViewer: React.FC<ScriptViewerProps> = ({
                     e.stopPropagation();
                     onOpenTips(line);
                   }}
-                  className={`p-1.5 rounded-lg transition-colors ${
+                  className={`p-1 rounded transition-colors ${
                     line.tips?.actingNote || line.tips?.emotion
-                      ? 'text-amber-400 hover:bg-amber-400/10'
-                      : 'text-slate-600 hover:text-slate-300 hover:bg-slate-700/50'
+                      ? 'text-amber-600 hover:bg-amber-50'
+                      : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
                   }`}
                   title="演技Tipsを確認・編集（長押しでも開けます）"
                 >
@@ -175,29 +181,29 @@ export const ScriptViewer: React.FC<ScriptViewerProps> = ({
               </div>
             </div>
 
-            {/* 本文テキスト（大きめフォント・Spotify歌詞風） */}
+            {/* 本文テキスト */}
             <p
-              className={`leading-relaxed tracking-normal font-sans transition-all duration-300 ${
+              className={`leading-relaxed tracking-normal font-sans transition-colors ${
                 line.isDirection
-                  ? 'text-sm sm:text-base italic text-slate-400 font-serif'
-                  : 'text-base sm:text-lg md:text-xl font-medium text-slate-100'
-              } ${isActive ? 'font-semibold text-white' : ''}`}
+                  ? 'text-sm sm:text-base italic text-gray-600 bg-gray-50/80 p-2.5 rounded border border-gray-200'
+                  : 'text-base sm:text-lg md:text-xl font-medium text-gray-900'
+              } ${isActive ? 'font-bold text-gray-950' : ''}`}
             >
               {line.text}
             </p>
 
             {/* ルビ・読み仮名 */}
             {line.phoneticText && isActive && (
-              <p className="text-xs text-indigo-300/80 mt-1.5 font-mono">
+              <p className="text-xs text-[#004de5] mt-1.5 font-medium">
                 読み: {line.phoneticText}
               </p>
             )}
 
-            {/* アクティブ時の波形・再生インジケータ */}
+            {/* アクティブ時のステータス */}
             {isActive && isPlaying && !isCurrentLineUserTurn && (
-              <div className="mt-3 flex items-center space-x-1 text-xs text-indigo-400">
+              <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-[#004de5] font-semibold">
                 <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                <span>読み上げ中...</span>
+                <span>音声再生中</span>
               </div>
             )}
           </div>

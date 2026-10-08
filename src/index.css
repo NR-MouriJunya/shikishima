@@ -2,35 +2,48 @@
 
 @layer base {
   :root {
-    --font-sans: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'BIZ UDPGothic', 'Meiryo', sans-serif;
+    --font-sans: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'BIZ UDPGothic', sans-serif;
+    --dads-primary: #004de5;
+    --dads-primary-hover: #0037a6;
+    --dads-text-main: #1b1c1d;
+    --dads-text-sub: #4f5660;
+    --dads-bg-page: #f7f9fa;
+    --dads-border-default: #d1d5db;
   }
   
   html, body {
     margin: 0;
     padding: 0;
-    background-color: #0f172a;
-    color: #f8fafc;
+    background-color: var(--dads-bg-page);
+    color: var(--dads-text-main);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
+
+  /* DADSアクセシブル・フォーカスインジケータ */
+  *:focus-visible {
+    outline: 3px solid #fde047 !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 1px #1b1c1d !important;
+  }
 }
 
-/* スクロールバーのカスタマイズ */
+/* スクロールバーのカスタマイズ（DADSライトテーマ） */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: #f0f2f5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.4);
-  border-radius: 9999px;
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.7);
+  background: #94a3b8;
 }

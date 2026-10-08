@@ -224,19 +224,19 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-fadeIn">
+      <div className="bg-white border border-gray-300 rounded-lg w-full max-w-4xl shadow-xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* モーダルヘッダー */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
           <div className="flex items-center space-x-2">
-            <Camera className="w-5 h-5 text-pink-400" />
-            <h3 className="font-bold text-slate-100 text-base sm:text-lg">
+            <Camera className="w-5 h-5 text-[#004de5]" />
+            <h3 className="font-bold text-gray-900 text-base sm:text-lg">
               台本写真のOCR文字起こし
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -248,10 +248,10 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
             /* ステップ1: アップロードとOCR実行 */
             <div className="space-y-6 max-w-xl mx-auto">
               <div className="text-center space-y-1">
-                <h4 className="text-base font-semibold text-slate-200">
+                <h4 className="text-base font-bold text-gray-900">
                   台本の写真をアップロードまたは撮影
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-gray-600">
                   スマホのカメラで撮った台本や画像を自動で文字起こしし、役ごとのセリフに分割します。
                 </p>
               </div>
@@ -259,7 +259,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
               {/* 画像選択エリア */}
               {selectedImage ? (
                 <div className="space-y-3">
-                  <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-950 max-h-72 flex items-center justify-center">
+                  <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-gray-100 max-h-72 flex items-center justify-center">
                     <img
                       src={selectedImage}
                       alt="台本プレビュー"
@@ -267,7 +267,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                     />
                     <button
                       onClick={() => setSelectedImage(null)}
-                      className="absolute top-3 right-3 p-1.5 rounded-full bg-slate-900/80 text-slate-300 hover:text-white"
+                      className="absolute top-3 right-3 p-1.5 rounded-full bg-white/90 text-gray-700 hover:text-gray-950 shadow-sm border border-gray-200"
                       title="画像を取り消す"
                     >
                       <X className="w-4 h-4" />
@@ -275,25 +275,25 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                   </div>
 
                   {/* 縦書き・横書きトグル */}
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border border-slate-700 text-xs">
-                    <span className="text-slate-300 font-medium">台本の文字方向:</span>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs">
+                    <span className="text-gray-700 font-bold">台本の文字方向:</span>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setIsVertical(false)}
-                        className={`px-3 py-1 rounded-lg transition-colors ${
+                        className={`px-3 py-1.5 rounded font-semibold transition-colors ${
                           !isVertical
-                            ? 'bg-indigo-600 text-white font-semibold'
-                            : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                            ? 'bg-[#004de5] text-white shadow-2xs'
+                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                         }`}
                       >
                         横書き台本
                       </button>
                       <button
                         onClick={() => setIsVertical(true)}
-                        className={`px-3 py-1 rounded-lg transition-colors ${
+                        className={`px-3 py-1.5 rounded font-semibold transition-colors ${
                           isVertical
-                            ? 'bg-indigo-600 text-white font-semibold'
-                            : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                            ? 'bg-[#004de5] text-white shadow-2xs'
+                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                         }`}
                       >
                         縦書き台本
@@ -305,7 +305,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                   <button
                     onClick={handleStartOcr}
                     disabled={isProcessing}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-pink-500/25 flex items-center justify-center space-x-2 disabled:opacity-50 transition-all"
+                    className="w-full py-3 rounded bg-[#004de5] hover:bg-[#0037a6] text-white font-bold text-sm shadow-2xs flex items-center justify-center space-x-2 disabled:opacity-50 transition-colors"
                   >
                     <Sparkles className="w-4 h-4" />
                     <span>{isProcessing ? '文字認識中...' : '文字起こしを開始する'}</span>
@@ -313,18 +313,18 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
 
                   {/* プログレスバー */}
                   {isProcessing && (
-                    <div className="space-y-2 p-3 rounded-xl bg-slate-950 border border-slate-800">
-                      <div className="flex justify-between text-xs text-slate-300">
+                    <div className="space-y-2 p-3.5 rounded-lg bg-gray-50 border border-gray-200">
+                      <div className="flex justify-between text-xs text-gray-700 font-medium">
                         <span>{statusText}</span>
-                        <span className="font-mono text-pink-400">{progress}%</span>
+                        <span className="font-mono text-[#004de5] font-bold">{progress}%</span>
                       </div>
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
                         <div
-                          className="bg-gradient-to-r from-pink-500 to-indigo-500 h-full transition-all duration-300"
+                          className="bg-[#004de5] h-full transition-all duration-300"
                           style={{ width: `${progress}%` }}
                         />
                       </div>
-                      <p className="text-[11px] text-slate-500 text-center">
+                      <p className="text-[11px] text-gray-500 text-center">
                         ※初回は日本語認識データの読み込みに10〜20秒ほどかかる場合があります
                       </p>
                     </div>
@@ -336,32 +336,32 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                   {/* カメラで撮影 */}
                   <button
                     onClick={() => cameraInputRef.current?.click()}
-                    className="flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-slate-700 hover:border-pink-500/70 bg-slate-800/40 hover:bg-slate-800/70 transition-all group cursor-pointer"
+                    className="flex flex-col items-center justify-center p-8 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#004de5] bg-gray-50 hover:bg-blue-50/40 transition-colors group cursor-pointer"
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-pink-500/10 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform mb-3">
+                    <div className="w-12 h-12 rounded bg-blue-100 flex items-center justify-center text-[#004de5] group-hover:scale-105 transition-transform mb-3">
                       <Camera className="w-6 h-6" />
                     </div>
-                    <span className="font-bold text-slate-200 text-sm mb-1">
+                    <span className="font-bold text-gray-900 text-sm mb-1">
                       カメラで撮影する
                     </span>
-                    <span className="text-xs text-slate-400 text-center">
-                      紙の台本をその場でパシャリ
+                    <span className="text-xs text-gray-500 text-center">
+                      紙の台本をその場で撮影
                     </span>
                   </button>
 
                   {/* アルバムから選択 */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-slate-700 hover:border-indigo-500/70 bg-slate-800/40 hover:bg-slate-800/70 transition-all group cursor-pointer"
+                    className="flex flex-col items-center justify-center p-8 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#004de5] bg-gray-50 hover:bg-blue-50/40 transition-colors group cursor-pointer"
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform mb-3">
+                    <div className="w-12 h-12 rounded bg-blue-100 flex items-center justify-center text-[#004de5] group-hover:scale-105 transition-transform mb-3">
                       <Upload className="w-6 h-6" />
                     </div>
-                    <span className="font-bold text-slate-200 text-sm mb-1">
+                    <span className="font-bold text-gray-900 text-sm mb-1">
                       ファイル・画像を選択
                     </span>
-                    <span className="text-xs text-slate-400 text-center">
-                      スマホの写真やスクショを選ぶ
+                    <span className="text-xs text-gray-500 text-center">
+                      端末の写真やスクショを選ぶ
                     </span>
                   </button>
 
@@ -384,29 +384,29 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
               )}
 
               {/* ヒント情報 */}
-              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start space-x-2.5 text-xs text-slate-400">
-                <HelpCircle className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-lg bg-blue-50/70 border border-blue-200 flex items-start space-x-2.5 text-xs text-gray-800">
+                <HelpCircle className="w-4 h-4 text-[#004de5] shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
-                  明るい場所で、台本の文字が歪まないようにまっすぐ撮影すると認識精度がグッと上がります。認識後の画面で誤字や役名を修正できます。
+                  明るい場所で、台本の文字が歪まないようにまっすぐ撮影すると認識精度が上がります。認識後の画面で誤字や役名を修正できます。
                 </p>
               </div>
             </div>
           ) : (
             /* ステップ2: 認識結果の確認・編集・取り込み */
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-gray-200">
                 <div className="flex items-center space-x-2">
-                  <FileText className="w-4 h-4 text-emerald-400" />
-                  <span className="font-bold text-slate-200 text-sm">
+                  <FileText className="w-4 h-4 text-[#004de5]" />
+                  <span className="font-bold text-gray-900 text-sm">
                     認識結果の確認・微調整
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs font-semibold text-gray-500">
                     ({parsedLines.length}行 抽出)
                   </span>
                 </div>
                 <button
                   onClick={handleReset}
-                  className="flex items-center space-x-1 text-xs text-slate-400 hover:text-slate-200"
+                  className="flex items-center space-x-1 text-xs text-gray-600 hover:text-gray-900 font-medium"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>別の写真を撮り直す</span>
@@ -415,12 +415,12 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
 
               {/* タイトル入力 */}
               <div>
-                <label className="block text-xs text-slate-400 mb-1">作品タイトル</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">作品タイトル</label>
                 <input
                   type="text"
                   value={scriptTitle}
                   onChange={(e) => setScriptTitle(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 font-bold focus:outline-none focus:ring-1 focus:ring-pink-500"
+                  className="w-full bg-white border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#004de5]"
                 />
               </div>
 
@@ -432,12 +432,12 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                   return (
                     <div
                       key={line.id}
-                      className="p-3 rounded-xl border border-slate-800 bg-slate-950/60 space-y-2"
+                      className="p-3 rounded-lg border border-gray-200 bg-gray-50/60 space-y-2 shadow-2xs"
                     >
                       <div className="flex items-center justify-between gap-2">
                         {/* 役の割り当て */}
                         <div className="flex items-center space-x-2">
-                          <label className="text-xs text-slate-400">役:</label>
+                          <label className="text-xs font-semibold text-gray-700">役:</label>
                           <select
                             value={line.roleId}
                             onChange={(e) => {
@@ -454,7 +454,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                                 )
                               );
                             }}
-                            className="bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs text-slate-200 font-semibold"
+                            className="bg-white border border-gray-300 rounded px-2 py-0.5 text-xs text-gray-900 font-semibold focus:outline-none focus:ring-1 focus:ring-[#004de5]"
                             style={{ color: role?.color }}
                           >
                             {detectedRoles.map((r) => (
@@ -470,7 +470,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                           onClick={() =>
                             setParsedLines((prev) => prev.filter((l) => l.id !== line.id))
                           }
-                          className="text-slate-500 hover:text-rose-400 p-1"
+                          className="text-gray-400 hover:text-red-600 p-1"
                           title="行を削除"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -487,7 +487,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                           );
                         }}
                         rows={2}
-                        className="w-full bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                        className="w-full bg-white border border-gray-300 rounded p-2 text-xs sm:text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#004de5] resize-none"
                       />
                     </div>
                   );
@@ -498,10 +498,10 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
         </div>
 
         {/* モーダルフッター */}
-        <div className="flex items-center justify-between px-6 py-3.5 border-t border-slate-800 bg-slate-900/90">
+        <div className="flex items-center justify-between px-6 py-3.5 border-t border-gray-200 bg-white">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs sm:text-sm text-slate-400 hover:text-slate-200"
+            className="px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 font-medium"
           >
             キャンセル
           </button>
@@ -509,7 +509,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
           {step === 'editing' && (
             <button
               onClick={handleFinishImport}
-              className="flex items-center space-x-1.5 px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-emerald-500/20 transition-all"
+              className="flex items-center space-x-1.5 px-5 py-2 bg-[#004de5] hover:bg-[#0037a6] text-white rounded text-xs sm:text-sm font-bold shadow-2xs transition-colors"
             >
               <Check className="w-4 h-4" />
               <span>この台本を取り込んで練習する</span>

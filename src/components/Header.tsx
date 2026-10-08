@@ -20,82 +20,87 @@ export const Header: React.FC<HeaderProps> = ({
   onResetScript,
 }) => {
   return (
-    <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-3 py-2.5 sm:px-6 sm:py-3">
-      <div className="max-w-4xl mx-auto flex items-center justify-between">
+    <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-3 py-2.5 sm:px-6 sm:py-3 shadow-xs">
+      <div className="max-w-5xl mx-auto flex items-center justify-between">
         {/* ロゴとタイトル */}
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/20 shrink-0">
-            <BookOpen className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 rounded bg-[#004de5] flex items-center justify-center text-white shrink-0">
+            <BookOpen className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-lg tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-indigo-300">
+              <span className="font-bold text-base sm:text-lg tracking-tight text-gray-900">
                 しきしま
               </span>
-              {/* VOICEVOXステータスバッジ */}
+              <span className="hidden md:inline-block text-[11px] text-gray-500 font-normal border-l border-gray-300 pl-2">
+                台本練習支援システム
+              </span>
+              {/* 音声ステータスバッジ（DADSチップラベル風） */}
               <button
                 onClick={onOpenRoleModal}
-                className={`text-[11px] px-2 py-0.5 rounded-full border transition-all flex items-center space-x-1 ${
+                className={`text-[11px] px-2 py-0.5 rounded border transition-colors flex items-center space-x-1.5 font-medium ${
                   isVoicevoxConnected
-                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60 hover:bg-emerald-900/80'
-                    : 'bg-amber-950/80 text-amber-300 border-amber-700/60 hover:bg-amber-900/80'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                    : 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
                 }`}
                 title={
                   isVoicevoxConnected
                     ? 'VOICEVOX接続中（超自然AI音声が有効です）'
-                    : 'VOICEVOX未起動（PCで起動すると自動接続されます）'
+                    : '標準TTS（PCでVOICEVOXを起動するとAI音声に切り替わります）'
                 }
               >
                 <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    isVoicevoxConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                  className={`w-2 h-2 rounded-full ${
+                    isVoicevoxConnected ? 'bg-emerald-600 animate-pulse' : 'bg-amber-600'
                   }`}
                 />
-                <span>{isVoicevoxConnected ? 'AI音声: VOICEVOX' : '標準TTS'}</span>
+                <span>{isVoicevoxConnected ? 'VOICEVOX' : '標準TTS'}</span>
               </button>
             </div>
-            <h1 className="text-sm font-medium text-slate-300 truncate max-w-[140px] sm:max-w-xs">
-              {script.title}
-            </h1>
+            <div className="flex items-center space-x-1 mt-0.5">
+              <span className="text-xs font-semibold text-gray-600 truncate max-w-[130px] sm:max-w-xs">
+                {script.title}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* アクションボタン群 */}
+        {/* アクションボタン群（DADSボタンスタイル） */}
         <div className="flex items-center space-x-1.5 sm:space-x-2">
-          {/* 台本写真OCRボタン */}
+          {/* 台本写真OCRボタン（プライマリー） */}
           <button
             onClick={onOpenOcrModal}
-            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-pink-500/20 to-indigo-500/20 hover:from-pink-500/30 hover:to-indigo-500/30 text-pink-300 text-xs sm:text-sm font-semibold transition-all border border-pink-500/40 shadow-sm shadow-pink-500/10"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-[#004de5] hover:bg-[#0037a6] text-white text-xs sm:text-sm font-semibold transition-colors shadow-xs"
             title="カメラ撮影または画像から台本を文字起こし"
           >
-            <Camera className="w-4 h-4 text-pink-400" />
+            <Camera className="w-4 h-4" />
             <span className="hidden sm:inline">写真から読取</span>
           </button>
 
-          {/* 役設定ボタン */}
+          {/* 役設定ボタン（アウトライン） */}
           <button
             onClick={onOpenRoleModal}
-            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium transition-colors border border-slate-700"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-white hover:bg-gray-50 text-gray-800 text-xs sm:text-sm font-semibold transition-colors border border-gray-300 shadow-2xs"
             title="役のボイスや色を設定"
           >
-            <Users className="w-4 h-4 text-indigo-400" />
+            <Users className="w-4 h-4 text-gray-600" />
             <span className="hidden sm:inline">役・ボイス</span>
           </button>
 
-          {/* 台本編集ボタン */}
+          {/* 台本編集ボタン（アウトライン） */}
           <button
             onClick={onOpenEditorModal}
-            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium transition-colors border border-slate-700"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-white hover:bg-gray-50 text-gray-800 text-xs sm:text-sm font-semibold transition-colors border border-gray-300 shadow-2xs"
             title="セリフや読み方の編集"
           >
-            <Edit3 className="w-4 h-4 text-pink-400" />
+            <Edit3 className="w-4 h-4 text-gray-600" />
             <span className="hidden sm:inline">台本編集</span>
           </button>
 
-          {/* リセットボタン */}
+          {/* リセットボタン（アウトライン・アイコン） */}
           <button
             onClick={onResetScript}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors border border-slate-700"
+            className="p-1.5 rounded bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors border border-gray-300 shadow-2xs"
             title="初期台本にリセット"
           >
             <RotateCcw className="w-4 h-4" />

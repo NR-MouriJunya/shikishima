@@ -63,12 +63,12 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-3 py-2.5 sm:px-6 sm:py-3.5 shadow-2xl">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 px-3 py-2.5 sm:px-6 sm:py-3 shadow-md">
       <div className="max-w-4xl mx-auto flex flex-col space-y-2">
         {/* 進捗プログレスバー */}
-        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+        <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
           <div
-            className="bg-gradient-to-r from-pink-500 via-indigo-500 to-sky-400 h-full transition-all duration-300 rounded-full"
+            className="bg-[#004de5] h-full transition-all duration-300 rounded-full"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -79,28 +79,28 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
             <button
               onClick={onToggleSoloMode}
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded text-xs font-semibold transition-colors border ${
                 soloPracticeMode
-                  ? 'bg-pink-600/20 border-pink-500 text-pink-300 shadow-sm shadow-pink-500/20'
-                  : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
+                  ? 'bg-blue-50 border-[#004de5] text-[#004de5]'
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
               title="オンにすると自分の役のセリフだけ無音になり、自分で発声練習できます"
             >
               <UserCheck className="w-4 h-4" />
               <span className="hidden sm:inline">一人読み合わせ:</span>
-              <span>{soloPracticeMode ? '自役ミュート中' : '全役再生'}</span>
+              <span>{soloPracticeMode ? '自役ミュート' : '全役再生'}</span>
             </button>
 
             {soloPracticeMode && userRole && (
               <span
-                className="hidden md:inline-flex text-[11px] px-2 py-0.5 rounded font-medium truncate max-w-[100px]"
-                style={{ color: userRole.color, backgroundColor: userRole.bgColor }}
+                className="hidden md:inline-flex text-[11px] px-2 py-0.5 rounded font-semibold truncate max-w-[100px] border border-gray-300"
+                style={{ color: userRole.color, backgroundColor: userRole.bgColor || '#f8fafc' }}
               >
                 担当: {userRole.name}
               </span>
             )}
 
-            <div className="text-xs font-mono text-slate-400 hidden xs:block">
+            <div className="text-xs font-mono font-medium text-gray-500 hidden xs:block">
               {currentLineIndex >= 0 ? currentLineIndex + 1 : 0} / {totalLines}
             </div>
           </div>
@@ -111,7 +111,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             <button
               onClick={onPrev}
               disabled={currentLineIndex <= 0}
-              className="p-2 rounded-full text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              className="p-2 rounded text-gray-700 hover:text-gray-950 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
               title="前の行"
             >
               <SkipBack className="w-5 h-5" />
@@ -121,7 +121,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             {isPlaying ? (
               <button
                 onClick={onPause}
-                className="p-3 rounded-full bg-gradient-to-tr from-pink-500 to-indigo-600 text-white shadow-lg shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all"
+                className="p-3 rounded-full bg-[#004de5] hover:bg-[#0037a6] text-white shadow-xs transition-colors"
                 title="一時停止"
               >
                 <Pause className="w-5 h-5 fill-white" />
@@ -129,7 +129,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             ) : (
               <button
                 onClick={onPlay}
-                className="p-3 rounded-full bg-gradient-to-tr from-pink-500 to-indigo-600 text-white shadow-lg shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all"
+                className="p-3 rounded-full bg-[#004de5] hover:bg-[#0037a6] text-white shadow-xs transition-colors"
                 title="再生（タップした行または最初から）"
               >
                 <Play className="w-5 h-5 fill-white ml-0.5" />
@@ -140,7 +140,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             <button
               onClick={onStop}
               disabled={!isPlaying && !isPaused && currentLineIndex === -1}
-              className="p-2 rounded-full text-slate-400 hover:text-rose-400 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              className="p-2 rounded text-gray-600 hover:text-red-600 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
               title="停止"
             >
               <Square className="w-4 h-4 fill-current" />
@@ -150,7 +150,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             <button
               onClick={onNext}
               disabled={currentLineIndex >= totalLines - 1}
-              className="p-2 rounded-full text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              className="p-2 rounded text-gray-700 hover:text-gray-950 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
               title="次の行"
             >
               <SkipForward className="w-5 h-5" />
@@ -162,22 +162,22 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             {/* 再生速度ボタン */}
             <button
               onClick={handleNextSpeed}
-              className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-300 border border-slate-700 transition-colors"
+              className="flex items-center space-x-1 px-2.5 py-1 rounded bg-white hover:bg-gray-50 text-xs font-semibold text-gray-800 border border-gray-300 transition-colors shadow-2xs"
               title="再生速度を切り替え"
             >
-              <Gauge className="w-3.5 h-3.5 text-indigo-400" />
+              <Gauge className="w-3.5 h-3.5 text-[#004de5]" />
               <span>{globalRate.toFixed(1)}x</span>
             </button>
 
-            {/* 音量コントロール（モバイルではミュート切り替え、PCではスライダー） */}
+            {/* 音量コントロール */}
             <div className="flex items-center space-x-1.5">
               <button
                 onClick={() => onChangeVolume(globalVolume === 0 ? 1.0 : 0)}
-                className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                className="p-1.5 text-gray-600 hover:text-gray-900 transition-colors"
                 title={globalVolume === 0 ? 'ミュート解除' : 'ミュート'}
               >
                 {globalVolume === 0 ? (
-                  <VolumeX className="w-4 h-4 text-rose-400" />
+                  <VolumeX className="w-4 h-4 text-red-600" />
                 ) : (
                   <Volume2 className="w-4 h-4" />
                 )}
@@ -189,7 +189,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
                 step="0.05"
                 value={globalVolume}
                 onChange={(e) => onChangeVolume(parseFloat(e.target.value))}
-                className="w-14 sm:w-20 accent-indigo-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg hidden sm:block"
+                className="w-14 sm:w-20 accent-[#004de5] cursor-pointer h-1.5 bg-gray-200 rounded-lg hidden sm:block"
                 title="音量調整"
               />
             </div>
