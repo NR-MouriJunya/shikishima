@@ -9,9 +9,17 @@ import {
   RotateCcw,
   HelpCircle,
   Trash2,
+  ArrowLeft,
+  ArrowRight,
 } from 'lucide-react';
 import { createWorker } from 'tesseract.js';
 import type { Script, ScriptLine, Role } from '../types/script';
+
+interface ImageItem {
+  id: string;
+  url: string;
+  name: string;
+}
 
 interface OcrImportModalProps {
   isOpen: boolean;
@@ -24,9 +32,11 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
   onClose,
   onImportScript,
 }) => {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  // プールされた画像リスト
+  const [imagePool, setImagePool] = useState<ImageItem[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0);
+  const [overallProgress, setOverallProgress] = useState<number>(0);
+  const [currentProcessingPage, setCurrentProcessingPage] = useState<number>(1);
   const [statusText, setStatusText] = useState<string>('');
   const [isVertical, setIsVertical] = useState<boolean>(false); // 縦書きか横書きか
 
@@ -38,7 +48,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
       id: 'direction',
       name: 'ト書き',
       color: '#94a3b8',
-      bgColor: 'rgba(148, 163, 184, 0.15)',
+      bgColor: '#f1f5f9',
       pitch: 0.9,
       rate: 1.0,
       isUserRole: false,
@@ -51,46 +61,105 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
 
   if (!isOpen) return null;
 
-  // 画像ファイルが選択されたとき
+  // 画像ファイルが選択されたとき（複数ファイル対応）
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileList = Array.from(files);
+    fileList.forEach((file, index) => {
       const reader = new FileReader();
       reader.onload = () => {
-        setSelectedImage(reader.result as string);
+        setImagePool((prev) => [
+          ...prev,
+          {
+            id: `img-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 6)}`,
+            url: reader.result as string,
+            name: file.name || `ページ ${prev.length + index + 1}`,
+          },
+        ]);
       };
       reader.readAsDataURL(file);
-    }
+    });
+
+    // 同じファイルを再選択できるようにリセット
+    e.target.value = '';
   };
 
-  // OCR解析の実行
+  // 画像の削除
+  const handleRemoveImage = (id: string) => {
+    setImagePool((prev) => prev.filter((img) => img.id !== id));
+  };
+
+  // 画像の順序移動（前へ）
+  const handleMoveImageLeft = (index: number) => {
+    if (index === 0) return;
+    setImagePool((prev) => {
+      const copy = [...prev];
+      const temp = copy[index - 1];
+      copy[index - 1] = copy[index];
+      copy[index] = temp;
+      return copy;
+    });
+  };
+
+  // 画像の順序移動（次へ）
+  const handleMoveImageRight = (index: number) => {
+    if (index === imagePool.length - 1) return;
+    setImagePool((prev) => {
+      const copy = [...prev];
+      const temp = copy[index + 1];
+      copy[index + 1] = copy[index];
+      copy[index] = temp;
+      return copy;
+    });
+  };
+
+  // 複数画像の順次OCR解析実行（キュー方式）
   const handleStartOcr = async () => {
-    if (!selectedImage) return;
+    if (imagePool.length === 0) return;
 
     setIsProcessing(true);
-    setProgress(0);
+    setOverallProgress(0);
+    setCurrentProcessingPage(1);
     setStatusText('OCRエンジンを初期化中...');
 
     try {
-      // 縦書き(jpn_vert)または横書き(jpn)の学習データを指定
       const lang = isVertical ? 'jpn_vert' : 'jpn';
+      let activeIndex = 0;
+
+      // 1つのWorkerを再利用してメモリ負荷と読み込み時間を大幅削減
       const worker = await createWorker(lang, 1, {
         logger: (m) => {
           if (m.status === 'recognizing text') {
-            setStatusText(`文字を認識中... (${Math.round(m.progress * 100)}%)`);
-            setProgress(Math.round(m.progress * 100));
+            const pagePct = Math.round(m.progress * 100);
+            const totalPct = Math.round(
+              ((activeIndex + m.progress) / imagePool.length) * 100
+            );
+            setOverallProgress(totalPct);
+            setStatusText(
+              `ページ ${activeIndex + 1} / ${imagePool.length} を文字認識中... (${pagePct}%)`
+            );
           } else {
             setStatusText(m.status);
           }
         },
       });
 
-      setStatusText('文字起こしを実行中...');
-      const ret = await worker.recognize(selectedImage);
+      const allRecognizedTexts: string[] = [];
+
+      for (let i = 0; i < imagePool.length; i++) {
+        activeIndex = i;
+        setCurrentProcessingPage(i + 1);
+        setStatusText(`ページ ${i + 1} / ${imagePool.length} のテキストを抽出中...`);
+        const ret = await worker.recognize(imagePool[i].url);
+        allRecognizedTexts.push(ret.data.text);
+      }
+
       await worker.terminate();
 
-      // テキストを行ごとに解析
-      parseOcrTextToScript(ret.data.text);
+      // 全ページのテキストを順番に連結して台本行に自動分解
+      parseOcrTextToScript(allRecognizedTexts.join('\n'));
       setStep('editing');
     } catch (err: any) {
       console.error('OCRエラー:', err);
@@ -113,13 +182,13 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
       id: 'direction',
       name: 'ト書き',
       color: '#94a3b8',
-      bgColor: 'rgba(148, 163, 184, 0.15)',
+      bgColor: '#f1f5f9',
       pitch: 0.9,
       rate: 1.0,
       isUserRole: false,
     });
 
-    const roleColors = ['#f472b6', '#38bdf8', '#34d399', '#fbbf24', '#a78bfa'];
+    const roleColors = ['#004de5', '#059669', '#d97706', '#9333ea', '#dc2626'];
     let colorIdx = 0;
 
     const lines: ScriptLine[] = [];
@@ -161,7 +230,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
             id: roleId,
             name: charName,
             color,
-            bgColor: `${color}25`,
+            bgColor: '#eff6ff',
             pitch: 1.0,
             rate: 1.0,
             isUserRole: rolesMap.size === 1, // 最初の登場人物を初期自役にする
@@ -207,9 +276,10 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
   const handleFinishImport = () => {
     const newScript: Script = {
       id: `script-${Date.now()}`,
-      title: scriptTitle || '取り込んだ台本',
+      title: scriptTitle || '写真から取り込んだ台本',
       roles: detectedRoles,
       lines: parsedLines,
+      updatedAt: Date.now(),
     };
     onImportScript(newScript);
     onClose();
@@ -217,9 +287,10 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
 
   // リセット
   const handleReset = () => {
-    setSelectedImage(null);
+    setImagePool([]);
     setStep('upload');
-    setProgress(0);
+    setOverallProgress(0);
+    setCurrentProcessingPage(1);
     setStatusText('');
   };
 
@@ -228,11 +299,16 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
       <div className="bg-white border border-gray-300 rounded-lg w-full max-w-4xl shadow-xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* モーダルヘッダー */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             <Camera className="w-5 h-5 text-[#004de5]" />
             <h3 className="font-bold text-gray-900 text-base sm:text-lg">
               台本写真のOCR文字起こし
             </h3>
+            {imagePool.length > 0 && step === 'upload' && (
+              <span className="hidden sm:inline-flex text-xs bg-blue-50 text-[#004de5] border border-blue-200 px-2 py-0.5 rounded font-semibold">
+                {imagePool.length} ページ選択中
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -245,33 +321,108 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
         {/* コンテンツエリア */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           {step === 'upload' ? (
-            /* ステップ1: アップロードとOCR実行 */
-            <div className="space-y-6 max-w-xl mx-auto">
+            /* ステップ1: 複数写真のプールと順次OCR実行 */
+            <div className="space-y-5 max-w-2xl mx-auto">
               <div className="text-center space-y-1">
                 <h4 className="text-base font-bold text-gray-900">
-                  台本の写真をアップロードまたは撮影
+                  台本の写真をプールして一括文字起こし
                 </h4>
                 <p className="text-xs text-gray-600">
-                  スマホのカメラで撮った台本や画像を自動で文字起こしし、役ごとのセリフに分割します。
+                  複数ページの台本写真をまとめて選択または連続撮影し、1冊の台本として順番に文字起こしします。
                 </p>
               </div>
 
-              {/* 画像選択エリア */}
-              {selectedImage ? (
-                <div className="space-y-3">
-                  <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-gray-100 max-h-72 flex items-center justify-center">
-                    <img
-                      src={selectedImage}
-                      alt="台本プレビュー"
-                      className="max-h-72 object-contain"
-                    />
+              {/* プールされた画像一覧 */}
+              {imagePool.length > 0 ? (
+                <div className="space-y-4">
+                  {/* アクションバー（追加ボタン群と全クリア） */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => cameraInputRef.current?.click()}
+                        disabled={isProcessing}
+                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 font-semibold transition-colors shadow-2xs disabled:opacity-50"
+                      >
+                        <Camera className="w-3.5 h-3.5 text-[#004de5]" />
+                        <span>次のページを撮影</span>
+                      </button>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isProcessing}
+                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 font-semibold transition-colors shadow-2xs disabled:opacity-50"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-[#004de5]" />
+                        <span>画像を追加選択</span>
+                      </button>
+                    </div>
+
                     <button
-                      onClick={() => setSelectedImage(null)}
-                      className="absolute top-3 right-3 p-1.5 rounded-full bg-white/90 text-gray-700 hover:text-gray-950 shadow-sm border border-gray-200"
-                      title="画像を取り消す"
+                      onClick={() => setImagePool([])}
+                      disabled={isProcessing}
+                      className="text-gray-500 hover:text-red-600 font-medium transition-colors disabled:opacity-50"
                     >
-                      <X className="w-4 h-4" />
+                      すべてクリア
                     </button>
+                  </div>
+
+                  {/* サムネイルプール・グリッド */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-64 overflow-y-auto p-1">
+                    {imagePool.map((item, idx) => (
+                      <div
+                        key={item.id}
+                        className="relative rounded-lg border border-gray-200 bg-gray-100 overflow-hidden flex flex-col group shadow-2xs"
+                      >
+                        {/* ページ番号バッジ */}
+                        <div className="absolute top-2 left-2 z-10 bg-black/75 text-white text-[11px] font-bold px-1.5 py-0.5 rounded backdrop-blur-xs">
+                          P.{idx + 1}
+                        </div>
+
+                        {/* 削除ボタン */}
+                        {!isProcessing && (
+                          <button
+                            onClick={() => handleRemoveImage(item.id)}
+                            className="absolute top-2 right-2 z-10 p-1 rounded bg-white/90 text-gray-700 hover:text-red-600 shadow-sm border border-gray-200"
+                            title="このページを削除"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {/* 画像サムネイル */}
+                        <div className="h-32 w-full flex items-center justify-center bg-gray-900/5">
+                          <img
+                            src={item.url}
+                            alt={`台本 ${idx + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+
+                        {/* 順序入れ替えコントロール */}
+                        {!isProcessing && (
+                          <div className="flex items-center justify-between px-2 py-1 bg-white border-t border-gray-200 text-xs text-gray-500">
+                            <button
+                              onClick={() => handleMoveImageLeft(idx)}
+                              disabled={idx === 0}
+                              className="p-1 rounded hover:bg-gray-100 text-gray-600 disabled:opacity-20"
+                              title="前へ移動"
+                            >
+                              <ArrowLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="text-[10px] font-mono font-semibold">
+                              {idx + 1} / {imagePool.length}
+                            </span>
+                            <button
+                              onClick={() => handleMoveImageRight(idx)}
+                              disabled={idx === imagePool.length - 1}
+                              className="p-1 rounded hover:bg-gray-100 text-gray-600 disabled:opacity-20"
+                              title="次へ移動"
+                            >
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
 
                   {/* 縦書き・横書きトグル */}
@@ -280,6 +431,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setIsVertical(false)}
+                        disabled={isProcessing}
                         className={`px-3 py-1.5 rounded font-semibold transition-colors ${
                           !isVertical
                             ? 'bg-[#004de5] text-white shadow-2xs'
@@ -290,6 +442,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                       </button>
                       <button
                         onClick={() => setIsVertical(true)}
+                        disabled={isProcessing}
                         className={`px-3 py-1.5 rounded font-semibold transition-colors ${
                           isVertical
                             ? 'bg-[#004de5] text-white shadow-2xs'
@@ -301,38 +454,44 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                     </div>
                   </div>
 
-                  {/* OCR開始ボタン */}
+                  {/* OCR一括開始ボタン */}
                   <button
                     onClick={handleStartOcr}
-                    disabled={isProcessing}
+                    disabled={isProcessing || imagePool.length === 0}
                     className="w-full py-3 rounded bg-[#004de5] hover:bg-[#0037a6] text-white font-bold text-sm shadow-2xs flex items-center justify-center space-x-2 disabled:opacity-50 transition-colors"
                   >
                     <Sparkles className="w-4 h-4" />
-                    <span>{isProcessing ? '文字認識中...' : '文字起こしを開始する'}</span>
+                    <span>
+                      {isProcessing
+                        ? `文字認識中... (ページ ${currentProcessingPage} / ${imagePool.length})`
+                        : `全 ${imagePool.length} ページの文字起こしを開始する`}
+                    </span>
                   </button>
 
-                  {/* プログレスバー */}
+                  {/* 順次プログレスバー */}
                   {isProcessing && (
-                    <div className="space-y-2 p-3.5 rounded-lg bg-gray-50 border border-gray-200">
+                    <div className="space-y-2.5 p-3.5 rounded-lg bg-gray-50 border border-gray-200">
                       <div className="flex justify-between text-xs text-gray-700 font-medium">
                         <span>{statusText}</span>
-                        <span className="font-mono text-[#004de5] font-bold">{progress}%</span>
+                        <span className="font-mono text-[#004de5] font-bold">
+                          全体進捗: {overallProgress}%
+                        </span>
                       </div>
-                      <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                      <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden">
                         <div
                           className="bg-[#004de5] h-full transition-all duration-300"
-                          style={{ width: `${progress}%` }}
+                          style={{ width: `${overallProgress}%` }}
                         />
                       </div>
                       <p className="text-[11px] text-gray-500 text-center">
-                        ※初回は日本語認識データの読み込みに10〜20秒ほどかかる場合があります
+                        ※端末の負荷を抑えるため、1ページずつ安全に順次文字起こしを行っています
                       </p>
                     </div>
                   )}
                 </div>
               ) : (
-                /* 画像未選択時のアップロードボタン群 */
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                /* 画像未選択時の初期アップロードUI */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {/* カメラで撮影 */}
                   <button
                     onClick={() => cameraInputRef.current?.click()}
@@ -345,11 +504,11 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                       カメラで撮影する
                     </span>
                     <span className="text-xs text-gray-500 text-center">
-                      紙の台本をその場で撮影
+                      紙の台本を1ページずつ撮影して追加
                     </span>
                   </button>
 
-                  {/* アルバムから選択 */}
+                  {/* アルバムから選択（複数選択可） */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="flex flex-col items-center justify-center p-8 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#004de5] bg-gray-50 hover:bg-blue-50/40 transition-colors group cursor-pointer"
@@ -358,37 +517,42 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                       <Upload className="w-6 h-6" />
                     </div>
                     <span className="font-bold text-gray-900 text-sm mb-1">
-                      ファイル・画像を選択
+                      写真・画像をまとめて選択
                     </span>
                     <span className="text-xs text-gray-500 text-center">
-                      端末の写真やスクショを選ぶ
+                      複数の写真やスクショを一括追加
                     </span>
                   </button>
-
-                  <input
-                    type="file"
-                    ref={cameraInputRef}
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
                 </div>
               )}
 
-              {/* ヒント情報 */}
+              {/* 隠しinput要素 */}
+              <input
+                type="file"
+                ref={cameraInputRef}
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              {/* DADS注釈ブロック */}
               <div className="p-3.5 rounded-lg bg-blue-50/70 border border-blue-200 flex items-start space-x-2.5 text-xs text-gray-800">
                 <HelpCircle className="w-4 h-4 text-[#004de5] shrink-0 mt-0.5" />
-                <p className="leading-relaxed">
-                  明るい場所で、台本の文字が歪まないようにまっすぐ撮影すると認識精度が上がります。認識後の画面で誤字や役名を修正できます。
-                </p>
+                <div className="space-y-1 leading-relaxed">
+                  <p className="font-semibold text-gray-900">複数ページの台本取り込みについて:</p>
+                  <p>
+                    何ページもある長編台本や複数枚の写真をプールして、1冊の通し台本として連結できます。読み取り前にサムネイルの順番（P.1, P.2...）を並び替えることも可能です。
+                  </p>
+                </div>
               </div>
             </div>
           ) : (
@@ -401,7 +565,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                     認識結果の確認・微調整
                   </span>
                   <span className="text-xs font-semibold text-gray-500">
-                    ({parsedLines.length}行 抽出)
+                    ({imagePool.length} ページ分 / {parsedLines.length} 行 抽出)
                   </span>
                 </div>
                 <button
@@ -409,7 +573,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                   className="flex items-center space-x-1 text-xs text-gray-600 hover:text-gray-900 font-medium"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>別の写真を撮り直す</span>
+                  <span>写真を撮り直す</span>
                 </button>
               </div>
 
