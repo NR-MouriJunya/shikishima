@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Users, Edit3, RotateCcw } from 'lucide-react';
+import { BookOpen, Users, Edit3, RotateCcw, Camera } from 'lucide-react';
 import type { Script } from '../types/script';
 
 interface HeaderProps {
@@ -7,6 +7,7 @@ interface HeaderProps {
   isVoicevoxConnected: boolean;
   onOpenRoleModal: () => void;
   onOpenEditorModal: () => void;
+  onOpenOcrModal: () => void;
   onResetScript: () => void;
 }
 
@@ -15,14 +16,15 @@ export const Header: React.FC<HeaderProps> = ({
   isVoicevoxConnected,
   onOpenRoleModal,
   onOpenEditorModal,
+  onOpenOcrModal,
   onResetScript,
 }) => {
   return (
-    <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 sm:px-6">
+    <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-3 py-2.5 sm:px-6 sm:py-3">
       <div className="max-w-4xl mx-auto flex items-center justify-between">
         {/* ロゴとタイトル */}
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/20">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/20 shrink-0">
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -52,28 +54,38 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>{isVoicevoxConnected ? 'AI音声: VOICEVOX' : '標準TTS'}</span>
               </button>
             </div>
-            <h1 className="text-sm font-medium text-slate-300 truncate max-w-[180px] sm:max-w-xs">
+            <h1 className="text-sm font-medium text-slate-300 truncate max-w-[140px] sm:max-w-xs">
               {script.title}
             </h1>
           </div>
         </div>
 
         {/* アクションボタン群 */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1.5 sm:space-x-2">
+          {/* 台本写真OCRボタン */}
+          <button
+            onClick={onOpenOcrModal}
+            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-pink-500/20 to-indigo-500/20 hover:from-pink-500/30 hover:to-indigo-500/30 text-pink-300 text-xs sm:text-sm font-semibold transition-all border border-pink-500/40 shadow-sm shadow-pink-500/10"
+            title="カメラ撮影または画像から台本を文字起こし"
+          >
+            <Camera className="w-4 h-4 text-pink-400" />
+            <span className="hidden sm:inline">写真から読取</span>
+          </button>
+
           {/* 役設定ボタン */}
           <button
             onClick={onOpenRoleModal}
-            className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium transition-colors border border-slate-700"
+            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium transition-colors border border-slate-700"
             title="役のボイスや色を設定"
           >
             <Users className="w-4 h-4 text-indigo-400" />
-            <span className="hidden sm:inline">役・ボイス設定</span>
+            <span className="hidden sm:inline">役・ボイス</span>
           </button>
 
           {/* 台本編集ボタン */}
           <button
             onClick={onOpenEditorModal}
-            className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium transition-colors border border-slate-700"
+            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium transition-colors border border-slate-700"
             title="セリフや読み方の編集"
           >
             <Edit3 className="w-4 h-4 text-pink-400" />

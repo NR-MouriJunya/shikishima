@@ -8,6 +8,7 @@ import { PlayerControls } from './components/PlayerControls';
 import { RoleSettingsModal } from './components/RoleSettingsModal';
 import { LineEditorModal } from './components/LineEditorModal';
 import { TipsModal } from './components/TipsModal';
+import { OcrImportModal } from './components/OcrImportModal';
 
 const STORAGE_KEY = 'shikishima_script_v1';
 
@@ -30,6 +31,7 @@ export function App() {
   // モーダル管理
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isEditorModalOpen, setIsEditorModalOpen] = useState(false);
+  const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
   const [selectedTipsLine, setSelectedTipsLine] = useState<ScriptLine | null>(null);
 
   // プレイヤー設定
@@ -110,6 +112,23 @@ export function App() {
     }
   };
 
+  // 写真OCRからの台本取り込みハンドラ
+  const handleImportScript = (newScript: Script) => {
+    stop();
+    setScript(newScript);
+    // ト書き以外の最初の役があれば自役に自動設定
+    const firstCharRole = newScript.roles.find((r) => r.id !== 'direction');
+    if (firstCharRole) {
+      setScript((prev) => ({
+        ...prev,
+        roles: prev.roles.map((r) => ({
+          ...r,
+          isUserRole: r.id === firstCharRole.id,
+        })),
+      }));
+    }
+  };
+
   // 選択された行に対応する役を取得
   const tipsLineRole = selectedTipsLine
     ? script.roles.find((r) => r.id === selectedTipsLine.roleId)
@@ -123,6 +142,7 @@ export function App() {
         isVoicevoxConnected={isVoicevoxConnected}
         onOpenRoleModal={() => setIsRoleModalOpen(true)}
         onOpenEditorModal={() => setIsEditorModalOpen(true)}
+        onOpenOcrModal={() => setIsOcrModalOpen(true)}
         onResetScript={handleResetScript}
       />
 
@@ -186,6 +206,13 @@ export function App() {
         isOpen={selectedTipsLine !== null}
         onClose={() => setSelectedTipsLine(null)}
         onSaveTips={handleSaveTips}
+      />
+
+      {/* 写真OCR台本取り込みモーダル */}
+      <OcrImportModal
+        isOpen={isOcrModalOpen}
+        onClose={() => setIsOcrModalOpen(false)}
+        onImportScript={handleImportScript}
       />
     </div>
   );
